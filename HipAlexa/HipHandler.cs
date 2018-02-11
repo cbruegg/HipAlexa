@@ -13,7 +13,7 @@ namespace HipAlexa
 {
     public class HipHandler
     {
-        private readonly IFactDb _db = new SimpleFactDb();
+        private readonly IDb _db = new SimpleDb();
 
         [UsedImplicitly]
         public async Task<SkillResponse> Handle(SkillRequest input, ILambdaContext context)
