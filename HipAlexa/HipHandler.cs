@@ -26,29 +26,29 @@ namespace HipAlexa
             switch (input.Request)
             {
                 case LaunchRequest _:
-                    return await HandleLaunchRequest();
+                    return await HandleLaunchRequestAsync();
                 case IntentRequest intentRequest:
-                    return await HandleIntentRequest(input, intentRequest, context);
+                    return await HandleIntentRequestAsync(input, intentRequest, context);
                 case SessionEndedRequest _:
-                    return await HandleSessionEndedRequest();
+                    return await HandleSessionEndedRequestAsync();
             }
 
             throw new ArgumentException("Unsupported input!");
         }
 
-        private async Task<SkillResponse> HandleLaunchRequest()
+        private async Task<SkillResponse> HandleLaunchRequestAsync()
         {
             var speech =
                 new PlainTextOutputSpeech {Text = "Was kann ich für dich tun? Frage nach einem Fakt oder Quiz."};
             return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech});
         }
 
-        private async Task<SkillResponse> HandleSessionEndedRequest()
+        private async Task<SkillResponse> HandleSessionEndedRequestAsync()
         {
             return ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = "Tschüss!"});
         }
 
-        private async Task<SkillResponse> HandleIntentRequest(SkillRequest request, IntentRequest intentRequest,
+        private async Task<SkillResponse> HandleIntentRequestAsync(SkillRequest request, IntentRequest intentRequest,
             ILambdaContext context)
         {
             switch (intentRequest.Intent.Name)
@@ -59,7 +59,7 @@ namespace HipAlexa
                     if (topic != null)
                     {
                         context.Logger.LogLine($"Topic is {topic}");
-                        var fact = await _db.RandomFact(topic);
+                        var fact = await _db.RandomFactAsync(topic);
                         if (fact == null)
                         {
                             return ResponseBuilder.Tell($"Zum Thema {topic} habe ich leider nichts gefunden.");
@@ -73,7 +73,7 @@ namespace HipAlexa
                     }
                     else
                     {
-                        var info = await _db.RandomFact();
+                        var info = await _db.RandomFactAsync();
                         var speech = new PlainTextOutputSpeech
                         {
                             Text = $"Hier ein interessanter Fakt über Paderborn: {info.Value}"
@@ -87,11 +87,11 @@ namespace HipAlexa
                     IQuiz quiz;
                     if (topic != null)
                     {
-                        quiz = await _db.RandomQuiz(topic) ?? await _db.RandomQuiz();
+                        quiz = await _db.RandomQuizAsync(topic) ?? await _db.RandomQuizAsync();
                     }
                     else
                     {
-                        quiz = await _db.RandomQuiz();
+                        quiz = await _db.RandomQuizAsync();
                     }
 
                     var state = new State(quiz.Id, questionsPosed: 1);
@@ -110,7 +110,7 @@ namespace HipAlexa
                     }
 
                     var state = State.From(request.Session);
-                    var quiz = await _db.QuizById(state.QuizId);
+                    var quiz = await _db.QuizByIdAsync(state.QuizId);
                     var answer = intentRequest.Intent.Slots["answer"].Value;
 
                     if (state.QuestionsPosed < quiz.Stages.Length)

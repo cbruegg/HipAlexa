@@ -9,19 +9,19 @@ namespace HipAlexa
         /// </summary>
         /// <param name="forTopic"></param>
         /// <returns></returns>
-        Task<IFact> RandomFact(string forTopic);
+        Task<IFact> RandomFactAsync(string forTopic);
 
-        Task<IFact> RandomFact();
+        Task<IFact> RandomFactAsync();
 
-        Task<IQuiz> RandomQuiz(string forTopic);
+        Task<IQuiz> RandomQuizAsync(string forTopic);
 
         /// <summary>
         /// May return null.
         /// </summary>
         /// <param name="forTopic"></param>
         /// <returns></returns>
-        Task<IQuiz> RandomQuiz();
+        Task<IQuiz> RandomQuizAsync();
 
-        Task<IQuiz> QuizById(int id);
+        Task<IQuiz> QuizByIdAsync(int id);
     }
 }
