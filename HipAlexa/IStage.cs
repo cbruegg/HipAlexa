@@ -35,25 +35,48 @@ namespace HipAlexa
             return sb.ToString();
         }
 
-        private static string RemoveSuffix(this string str, string suffix) => 
+        private static string RemoveSuffix(this string str, string suffix) =>
             str.EndsWith(suffix) ? str.Substring(0, str.Length - suffix.Length) : str;
 
-        public static bool IsAnswerCorrect(this IStage stage, string answer)
+        public enum AnswerResult
+        {
+            Wrong,
+            Correct,
+            UnknownAnswer
+        }
+
+        public static string Spoken(this AnswerResult result)
+        {
+            switch (result)
+            {
+                case AnswerResult.Wrong:
+                    return "<p>Das war leider falsch</p>";
+                case AnswerResult.Correct:
+                    return "<p>Das war richtig!</p>";
+                case AnswerResult.UnknownAnswer:
+                    return "<p>Entschuldigung, das habe ich leider nicht verstanden</p>";
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public static AnswerResult IsAnswerCorrect(this IStage stage, string answer)
         {
             var trimmed = answer.Trim().RemoveSuffix(".");
             if (trimmed.Length != 1)
-                return stage.CorrectAnswer.Trim().Equals(trimmed, StringComparison.InvariantCultureIgnoreCase);
+                return AnswerResult.UnknownAnswer;
 
-            for (var i = 0; i < Alphabet.Length; i++)
+            for (var i = 0; i < Math.Min(Alphabet.Length, stage.Answers.Length); i++)
             {
-                var letter = Alphabet[i];
-                if (char.ToUpperInvariant(trimmed[0]) == letter)
+                if (char.ToUpperInvariant(trimmed[0]) == Alphabet[i])
                 {
-                    return i < stage.Answers.Length && stage.Answers[i] == stage.CorrectAnswer;
+                    return stage.Answers[i] == stage.CorrectAnswer
+                        ? AnswerResult.Correct
+                        : AnswerResult.Wrong;
                 }
             }
 
-            return false;
+            return AnswerResult.UnknownAnswer;
         }
     }
 }

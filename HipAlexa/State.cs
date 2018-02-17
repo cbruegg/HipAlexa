@@ -19,9 +19,19 @@ namespace HipAlexa
                 QuestionsPosed = questionsPosed;
             }
 
-            public State Next(bool wasAnswerCorrect)
+            public State Next(IStageExtensions.AnswerResult wasAnswerCorrect)
             {
-                return new State(QuizId, CorrectAnswers + (wasAnswerCorrect ? 1 : 0), QuestionsPosed + 1);
+                switch (wasAnswerCorrect)
+                {
+                    case IStageExtensions.AnswerResult.Wrong:
+                        return new State(QuizId, CorrectAnswers, QuestionsPosed + 1);
+                    case IStageExtensions.AnswerResult.Correct:
+                        return new State(QuizId, CorrectAnswers + 1, QuestionsPosed + 1);
+                    case IStageExtensions.AnswerResult.UnknownAnswer:
+                        return this;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(wasAnswerCorrect), wasAnswerCorrect, null);
+                }
             }
 
             public void WriteTo(Session session)

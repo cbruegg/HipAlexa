@@ -25,32 +25,25 @@ namespace HipAlexa
 
             switch (input.Request)
             {
-                case LaunchRequest launchRequest:
-                    return await HandleLaunchRequest(input, launchRequest, context);
+                case LaunchRequest _:
+                    return await HandleLaunchRequest();
                 case IntentRequest intentRequest:
                     return await HandleIntentRequest(input, intentRequest, context);
-                case SessionEndedRequest sessionEndedRequest:
-                    return await HandleSessionEndedRequest(input, sessionEndedRequest, context);
+                case SessionEndedRequest _:
+                    return await HandleSessionEndedRequest();
             }
 
             throw new ArgumentException("Unsupported input!");
         }
 
-        private async Task<SkillResponse> HandleLaunchRequest(SkillRequest request, LaunchRequest launchRequest,
-            ILambdaContext context)
+        private async Task<SkillResponse> HandleLaunchRequest()
         {
-            return ResponseBuilder.Ask(
-                new PlainTextOutputSpeech {Text = "Was kann ich für dich tun? Frage nach einem Fakt oder Quiz."},
-                new Reprompt
-                {
-                    OutputSpeech =
-                        new PlainTextOutputSpeech {Text = "Was kann ich für dich tun? Frage nach einem Fakt oder Quiz."}
-                });
+            var speech =
+                new PlainTextOutputSpeech {Text = "Was kann ich für dich tun? Frage nach einem Fakt oder Quiz."};
+            return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech});
         }
 
-        private async Task<SkillResponse> HandleSessionEndedRequest(SkillRequest endedRequest,
-            SessionEndedRequest sessionEndedRequest,
-            ILambdaContext context)
+        private async Task<SkillResponse> HandleSessionEndedRequest()
         {
             return ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = "Tschüss!"});
         }
@@ -71,6 +64,7 @@ namespace HipAlexa
                         {
                             return ResponseBuilder.Tell($"Zum Thema {topic} habe ich leider nichts gefunden.");
                         }
+
                         var speech = new PlainTextOutputSpeech
                         {
                             Text = $"Zum Thema {topic} habe ich Folgendes gefunden: {fact.Value}"
@@ -89,7 +83,6 @@ namespace HipAlexa
                 }
                 case "StartQuizIntent":
                 {
-                    context.Logger.LogLine($"StartQuizIntent: {intentRequest}");
                     var topic = intentRequest.Intent.Slots["topic"]?.Value;
                     IQuiz quiz;
                     if (topic != null)
@@ -102,28 +95,23 @@ namespace HipAlexa
                     }
 
                     var state = new State(quiz.Id, questionsPosed: 1);
-
                     var session = request.Session;
                     state.WriteTo(session);
 
                     var speech = new SsmlOutputSpeech {Ssml = quiz.Stages[0].PosedQuestionSsml()};
-
                     return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, session);
                 }
                 case "AnswerIntent":
                 {
-                    context.Logger.LogLine($"AnswerIntent: {intentRequest}");
                     if (!State.ContainedIn(request.Session))
                     {
-                        return ResponseBuilder.Ask(new PlainTextOutputSpeech {Text = "Sage: \"Starte Quiz\""},
-                            new Reprompt {OutputSpeech = new PlainTextOutputSpeech {Text = "Sage: \"Starte Quiz\""}});
+                        var helpSpeech = new PlainTextOutputSpeech {Text = "Sage: \"Starte Quiz\""};
+                        return ResponseBuilder.Ask(helpSpeech, new Reprompt {OutputSpeech = helpSpeech});
                     }
 
                     var state = State.From(request.Session);
                     var quiz = await _db.QuizById(state.QuizId);
                     var answer = intentRequest.Intent.Slots["answer"].Value;
-                    context.Logger.LogLine(
-                        $"Got answer {answer} to question {quiz.Stages[state.QuestionsPosed - 1].Question}");
 
                     if (state.QuestionsPosed < quiz.Stages.Length)
                     {
@@ -134,9 +122,7 @@ namespace HipAlexa
                         {
                             var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
                             var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
-                            output += wasLastCorrect
-                                ? "<p>Das war richtig!</p>"
-                                : "<p>Das war leider falsch</p>";
+                            output += wasLastCorrect.Spoken();
                             nextState = state.Next(wasLastCorrect);
                         }
                         else
@@ -145,7 +131,7 @@ namespace HipAlexa
                             nextState = state;
                         }
 
-                        var nextQuestion = quiz.Stages[state.QuestionsPosed];
+                        var nextQuestion = quiz.Stages[nextState.QuestionsPosed - 1];
                         output += $" {nextQuestion.PosedQuestionSsml(wrapInSpeakTags: false)} </speak>";
                         var speech = new SsmlOutputSpeech {Ssml = output};
                         nextState.WriteTo(session);
@@ -155,14 +141,25 @@ namespace HipAlexa
                     {
                         var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
                         var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
-                        var correctAnswers = state.CorrectAnswers + (wasLastCorrect ? 1 : 0);
-                        var output = "<speak><p>";
-                        output += wasLastCorrect ? "Das war richtig!" : "Das war leider falsch. ";
-                        output += "</p> ";
-                        output +=
-                            $"<p>Insgesamt hast du {correctAnswers} von {quiz.Stages.Length} Fragen richtig beantwortet" +
-                            "</p></speak>";
-                        return ResponseBuilder.Tell(new SsmlOutputSpeech {Ssml = output});
+                        if (wasLastCorrect == IStageExtensions.AnswerResult.UnknownAnswer)
+                        {
+                            var nextQuestion = quiz.Stages[state.QuestionsPosed - 1];
+                            var output =
+                                $"<speak>{wasLastCorrect.Spoken()} {nextQuestion.PosedQuestionSsml(wrapInSpeakTags: false)}</speak>";
+                            var speech = new SsmlOutputSpeech {Ssml = output};
+                            return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, request.Session);
+                        }
+                        else
+                        {
+                            var correctAnswers = state.CorrectAnswers +
+                                                 (wasLastCorrect == IStageExtensions.AnswerResult.Correct ? 1 : 0);
+                            var output = "<speak>";
+                            output += wasLastCorrect.Spoken();
+                            output +=
+                                $"<p>Insgesamt hast du {correctAnswers} von {quiz.Stages.Length} Fragen richtig beantwortet" +
+                                "</p></speak>";
+                            return ResponseBuilder.Tell(new SsmlOutputSpeech {Ssml = output});
+                        }
                     }
                 }
                 default:
