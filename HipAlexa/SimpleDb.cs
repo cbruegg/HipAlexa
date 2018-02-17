@@ -21,8 +21,8 @@ namespace HipAlexa
             var fact1 = new SimpleFact("Dies ist Fakt Nummer 1.");
             var fact2 = new SimpleFact("Dies ist Fakt Nummer 2.");
             var fact3 = new SimpleFact("Dies ist Fakt Nummer 3.");
-            var historyTopic = new SimpleTopic(new[] {"Geschichte", "Historie"});
-            var modernTopic = new SimpleTopic(new[] {"Moderne"});
+            var historyTopic = new SimpleTopic("Geschichte", "Historie");
+            var modernTopic = new SimpleTopic("Moderne");
             _facts = new[] {fact1, fact2, fact3};
             _factsByTopic = new Dictionary<ITopic, IReadOnlyList<IFact>>
             {
@@ -64,7 +64,7 @@ namespace HipAlexa
                 .SelectMany(it => it.Value)
                 .ToList();
 
-            return factsForTopic.Count > 0 ? _facts[_random.Next(_facts.Count)] : null;
+            return factsForTopic.Count > 0 ? factsForTopic[_random.Next(factsForTopic.Count)] : null;
         }
 
         public async Task<IFact> RandomFact() => _facts[_random.Next(_facts.Count)];
@@ -77,7 +77,7 @@ namespace HipAlexa
                 .SelectMany(it => it.Value)
                 .ToList();
 
-            return quizzesForTopic.Count > 0 ? null : _quizzes[_random.Next(_facts.Count)];
+            return quizzesForTopic.Count > 0 ? quizzesForTopic[_random.Next(quizzesForTopic.Count)] : null;
         }
 
         public async Task<IQuiz> RandomQuiz() => _quizzes[_random.Next(_quizzes.Count)];

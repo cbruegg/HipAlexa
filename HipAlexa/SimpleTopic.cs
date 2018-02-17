@@ -4,7 +4,7 @@
     {
         public string[] Synonyms { get; }
 
-        public SimpleTopic(string[] synonyms)
+        public SimpleTopic(params string[] synonyms)
         {
             Synonyms = synonyms;
         }
