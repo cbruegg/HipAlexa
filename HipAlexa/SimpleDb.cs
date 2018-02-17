@@ -56,7 +56,7 @@ namespace HipAlexa
             };
         }
 
-        public async Task<IFact> RandomFactAsync(string forTopic)
+        public Task<IFact> RandomFactAsync(string forTopic)
         {
             var factsForTopic = _factsByTopic
                 .Where(it => it.Key.Synonyms.Any(synonym =>
@@ -64,12 +64,13 @@ namespace HipAlexa
                 .SelectMany(it => it.Value)
                 .ToList();
 
-            return factsForTopic.Count > 0 ? factsForTopic[_random.Next(factsForTopic.Count)] : null;
+            var result = factsForTopic.Count > 0 ? factsForTopic[_random.Next(factsForTopic.Count)] : null;
+            return Task.FromResult(result);
         }
 
-        public async Task<IFact> RandomFactAsync() => _facts[_random.Next(_facts.Count)];
+        public Task<IFact> RandomFactAsync() => Task.FromResult(_facts[_random.Next(_facts.Count)]);
 
-        public async Task<IQuiz> RandomQuizAsync(string forTopic)
+        public Task<IQuiz> RandomQuizAsync(string forTopic)
         {
             var quizzesForTopic = _quizzesByTopic
                 .Where(it => it.Key.Synonyms.Any(synonym =>
@@ -77,11 +78,12 @@ namespace HipAlexa
                 .SelectMany(it => it.Value)
                 .ToList();
 
-            return quizzesForTopic.Count > 0 ? quizzesForTopic[_random.Next(quizzesForTopic.Count)] : null;
+            var result = quizzesForTopic.Count > 0 ? quizzesForTopic[_random.Next(quizzesForTopic.Count)] : null;
+            return Task.FromResult(result);
         }
 
-        public async Task<IQuiz> RandomQuizAsync() => _quizzes[_random.Next(_quizzes.Count)];
+        public Task<IQuiz> RandomQuizAsync() => Task.FromResult(_quizzes[_random.Next(_quizzes.Count)]);
 
-        public async Task<IQuiz> QuizByIdAsync(int id) => _quizzes.Single(it => it.Id == id);
+        public Task<IQuiz> QuizByIdAsync(int id) => Task.FromResult(_quizzes.Single(it => it.Id == id));
     }
 }
