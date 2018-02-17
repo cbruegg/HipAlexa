@@ -65,6 +65,7 @@ namespace HipAlexa
                     var topic = intentRequest.Intent.Slots["topic"]?.Value;
                     if (topic != null)
                     {
+                        context.Logger.LogLine($"Topic is {topic}");
                         var fact = await _db.RandomFact(topic);
                         if (fact == null)
                         {

@@ -64,7 +64,7 @@ namespace HipAlexa
                 .SelectMany(it => it.Value)
                 .ToList();
 
-            return factsForTopic.Count > 0 ? null : _facts[_random.Next(_facts.Count)];
+            return factsForTopic.Count > 0 ? _facts[_random.Next(_facts.Count)] : null;
         }
 
         public async Task<IFact> RandomFact() => _facts[_random.Next(_facts.Count)];
