@@ -4,60 +4,57 @@ using Alexa.NET.Request;
 
 namespace HipAlexa
 {
-    public partial class HipHandler
+    public class State
     {
-        public class State
+        public int QuizId { get; }
+        public int CorrectAnswers { get; }
+        public int QuestionsPosed { get; }
+
+        public State(int quizId, int correctAnswers = 0, int questionsPosed = 0)
         {
-            public int QuizId { get; }
-            public int CorrectAnswers { get; }
-            public int QuestionsPosed { get; }
+            QuizId = quizId;
+            CorrectAnswers = correctAnswers;
+            QuestionsPosed = questionsPosed;
+        }
 
-            public State(int quizId, int correctAnswers = 0, int questionsPosed = 0)
+        public State Next(IStageExtensions.AnswerResult wasAnswerCorrect)
+        {
+            switch (wasAnswerCorrect)
             {
-                QuizId = quizId;
-                CorrectAnswers = correctAnswers;
-                QuestionsPosed = questionsPosed;
+                case IStageExtensions.AnswerResult.Wrong:
+                    return new State(QuizId, CorrectAnswers, QuestionsPosed + 1);
+                case IStageExtensions.AnswerResult.Correct:
+                    return new State(QuizId, CorrectAnswers + 1, QuestionsPosed + 1);
+                case IStageExtensions.AnswerResult.UnknownAnswer:
+                    return this;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(wasAnswerCorrect), wasAnswerCorrect, null);
             }
+        }
 
-            public State Next(IStageExtensions.AnswerResult wasAnswerCorrect)
-            {
-                switch (wasAnswerCorrect)
-                {
-                    case IStageExtensions.AnswerResult.Wrong:
-                        return new State(QuizId, CorrectAnswers, QuestionsPosed + 1);
-                    case IStageExtensions.AnswerResult.Correct:
-                        return new State(QuizId, CorrectAnswers + 1, QuestionsPosed + 1);
-                    case IStageExtensions.AnswerResult.UnknownAnswer:
-                        return this;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(wasAnswerCorrect), wasAnswerCorrect, null);
-                }
-            }
+        public void WriteTo(Session session)
+        {
+            var sessionAttributes = session.Attributes ?? new Dictionary<string, object>();
+            session.Attributes = sessionAttributes;
+            sessionAttributes["QuestionsPosed"] = QuestionsPosed;
+            sessionAttributes["QuizId"] = QuizId;
+            sessionAttributes["CorrectAnswers"] = CorrectAnswers;
+        }
 
-            public void WriteTo(Session session)
-            {
-                var sessionAttributes = session.Attributes ?? new Dictionary<string, object>();
-                session.Attributes = sessionAttributes;
-                sessionAttributes["QuestionsPosed"] = QuestionsPosed;
-                sessionAttributes["QuizId"] = QuizId;
-                sessionAttributes["CorrectAnswers"] = CorrectAnswers;
-            }
+        public static State From(Session session)
+        {
+            return new State(
+                Convert.ToInt32(session.Attributes["QuizId"]),
+                Convert.ToInt32(session.Attributes["CorrectAnswers"]),
+                Convert.ToInt32(session.Attributes["QuestionsPosed"])
+            );
+        }
 
-            public static State From(Session session)
-            {
-                return new State(
-                    Convert.ToInt32(session.Attributes["QuizId"]),
-                    Convert.ToInt32(session.Attributes["CorrectAnswers"]),
-                    Convert.ToInt32(session.Attributes["QuestionsPosed"])
-                );
-            }
-
-            public static bool ContainedIn(Session session)
-            {
-                return session.Attributes != null && session.Attributes.ContainsKey("QuizId") &&
-                       session.Attributes.ContainsKey("CorrectAnswers") &&
-                       session.Attributes.ContainsKey("QuestionsPosed");
-            }
+        public static bool ContainedIn(Session session)
+        {
+            return session.Attributes != null && session.Attributes.ContainsKey("QuizId") &&
+                   session.Attributes.ContainsKey("CorrectAnswers") &&
+                   session.Attributes.ContainsKey("QuestionsPosed");
         }
     }
 }

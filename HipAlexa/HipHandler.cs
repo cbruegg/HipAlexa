@@ -11,7 +11,7 @@ using JetBrains.Annotations;
 
 namespace HipAlexa
 {
-    public partial class HipHandler
+    public class HipHandler
     {
         private readonly IDb _db = new SimpleDb();
 
