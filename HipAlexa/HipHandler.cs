@@ -38,16 +38,16 @@ namespace HipAlexa
             throw new ArgumentException("Unsupported input!");
         }
 
-        private async Task<SkillResponse> HandleLaunchRequestAsync()
+        private Task<SkillResponse> HandleLaunchRequestAsync()
         {
             var speech =
                 new PlainTextOutputSpeech {Text = "Was kann ich für dich tun? Frage nach einem Fakt oder Quiz."};
-            return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech});
+            return Task.FromResult(ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}));
         }
 
-        private async Task<SkillResponse> HandleSessionEndedRequestAsync()
+        private Task<SkillResponse> HandleSessionEndedRequestAsync()
         {
-            return ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = "Tschüss!"});
+            return Task.FromResult(ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = "Tschüss!"}));
         }
 
         private async Task<SkillResponse> HandleIntentRequestAsync(SkillRequest request, IntentRequest intentRequest,
