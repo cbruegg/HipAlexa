@@ -18,13 +18,43 @@ namespace HipAlexa
         {
             public int QuizId { get; }
             public int CorrectAnswers { get; }
-            public int QuestionsAnswered { get; }
+            public int QuestionsPosed { get; }
 
-            public State(int quizId, int correctAnswers = 0, int questionsAnswered = 0)
+            public State(int quizId, int correctAnswers = 0, int questionsPosed = 0)
             {
                 QuizId = quizId;
                 CorrectAnswers = correctAnswers;
-                QuestionsAnswered = questionsAnswered;
+                QuestionsPosed = questionsPosed;
+            }
+
+            public State Next(bool wasAnswerCorrect)
+            {
+                return new State(QuizId, CorrectAnswers + (wasAnswerCorrect ? 1 : 0), QuestionsPosed + 1);
+            }
+
+            public void WriteTo(Session session)
+            {
+                var sessionAttributes = session.Attributes ?? new Dictionary<string, object>();
+                session.Attributes = sessionAttributes;
+                sessionAttributes["QuestionsPosed"] = QuestionsPosed;
+                sessionAttributes["QuizId"] = QuizId;
+                sessionAttributes["CorrectAnswers"] = CorrectAnswers;
+            }
+
+            public static State From(Session session)
+            {
+                return new State(
+                    Convert.ToInt32(session.Attributes["QuizId"]),
+                    Convert.ToInt32(session.Attributes["CorrectAnswers"]),
+                    Convert.ToInt32(session.Attributes["QuestionsPosed"])
+                );
+            }
+
+            public static bool ContainedIn(Session session)
+            {
+                return session.Attributes != null && session.Attributes.ContainsKey("QuizId") &&
+                       session.Attributes.ContainsKey("CorrectAnswers") &&
+                       session.Attributes.ContainsKey("QuestionsPosed");
             }
         }
 
@@ -100,25 +130,21 @@ namespace HipAlexa
                 case "StartQuizIntent":
                 {
                     context.Logger.LogLine($"StartQuizIntent: {intentRequest}");
-                    State state;
                     var topic = intentRequest.Intent.Slots["topic"]?.Value;
+                    IQuiz quiz;
                     if (topic != null)
                     {
-                        state = new State((await _db.RandomQuiz(topic) ?? await _db.RandomQuiz()).Id);
+                        quiz = await _db.RandomQuiz(topic) ?? await _db.RandomQuiz();
                     }
                     else
                     {
-                        state = new State((await _db.RandomQuiz()).Id);
+                        quiz = await _db.RandomQuiz();
                     }
 
-                    var quiz = await _db.QuizById(state.QuizId);
+                    var state = new State(quiz.Id, questionsPosed: 1);
 
-                    var sessionAttributes = request.Session.Attributes ?? new Dictionary<string, object>();
                     var session = request.Session;
-                    session.Attributes = sessionAttributes;
-                    sessionAttributes["QuestionsAnswered"] = state.QuestionsAnswered + 1;
-                    sessionAttributes["QuizId"] = state.QuizId;
-                    sessionAttributes["CorrectAnswers"] = state.CorrectAnswers;
+                    state.WriteTo(session);
 
                     var speech = new SsmlOutputSpeech {Ssml = quiz.Stages[0].PosedQuestionSsml()};
 
@@ -127,55 +153,56 @@ namespace HipAlexa
                 case "AnswerIntent":
                 {
                     context.Logger.LogLine($"AnswerIntent: {intentRequest}");
-                    if (request.Session.Attributes?.ContainsKey("QuizId") != true)
+                    if (!State.ContainedIn(request.Session))
                     {
                         return ResponseBuilder.Ask(new PlainTextOutputSpeech {Text = "Sage: \"Starte Quiz\""},
                             new Reprompt {OutputSpeech = new PlainTextOutputSpeech {Text = "Sage: \"Starte Quiz\""}});
                     }
 
-                    var state = new State(
-                        Convert.ToInt32(request.Session.Attributes["QuizId"]),
-                        Convert.ToInt32(request.Session.Attributes["CorrectAnswers"]),
-                        Convert.ToInt32(request.Session.Attributes["QuestionsAnswered"])
-                    );
+                    var state = State.From(request.Session);
                     var quiz = await _db.QuizById(state.QuizId);
                     var answer = intentRequest.Intent.Slots["answer"].Value;
+                    context.Logger.LogLine(
+                        $"Got answer {answer} to question {quiz.Stages[state.QuestionsPosed - 1].Question}");
 
-                    if (state.QuestionsAnswered < quiz.Stages.Length)
+                    if (state.QuestionsPosed < quiz.Stages.Length)
                     {
                         var session = request.Session;
-                        session.Attributes["QuestionsAnswered"] = state.QuestionsAnswered + 1;
-
                         var output = "<speak>";
-                        if (state.QuestionsAnswered > 0)
+                        State nextState;
+                        if (state.QuestionsPosed > 0)
                         {
-                            var previousQuestion = quiz.Stages[state.QuestionsAnswered - 1];
+                            var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
                             var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
-                            output += wasLastCorrect ? "<p><em>Das war richtig!</em></p>" : "<p>Das war leider falsch</p>";
-                            if (wasLastCorrect)
-                            {
-                                session.Attributes["CorrectAnswers"] = state.CorrectAnswers + 1;
-                            }
+                            output += wasLastCorrect
+                                ? "<p>Das war richtig!</p>"
+                                : "<p>Das war leider falsch</p>";
+                            nextState = state.Next(wasLastCorrect);
                         }
                         else
                         {
-                            output = "<p><em>Los geht's!</em></p>";
+                            output = "<p>Los geht's!</p>";
+                            nextState = state;
                         }
 
-                        var nextQuestion = quiz.Stages[state.QuestionsAnswered];
+                        var nextQuestion = quiz.Stages[state.QuestionsPosed];
                         output += $" {nextQuestion.PosedQuestionSsml(wrapInSpeakTags: false)} </speak>";
                         var speech = new SsmlOutputSpeech {Ssml = output};
+                        nextState.WriteTo(session);
                         return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, session);
                     }
                     else
                     {
-                        var previousQuestion = quiz.Stages[state.QuestionsAnswered - 1];
+                        var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
                         var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
                         var correctAnswers = state.CorrectAnswers + (wasLastCorrect ? 1 : 0);
-                        var output = wasLastCorrect ? "Das war richtig!" : "Das war leider falsch. ";
+                        var output = "<speak><p>";
+                        output += wasLastCorrect ? "Das war richtig!" : "Das war leider falsch. ";
+                        output += "</p> ";
                         output +=
-                            $"Insgesamt hast du {correctAnswers} von {quiz.Stages.Length} Fragen richtig beantwortet.";
-                        return ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = output});
+                            $"<p>Insgesamt hast du {correctAnswers} von {quiz.Stages.Length} Fragen richtig beantwortet" +
+                            "</p></speak>";
+                        return ResponseBuilder.Tell(new SsmlOutputSpeech {Ssml = output});
                     }
                 }
                 default:

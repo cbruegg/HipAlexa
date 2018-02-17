@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Text;
 
 namespace HipAlexa
@@ -36,9 +35,12 @@ namespace HipAlexa
             return sb.ToString();
         }
 
+        private static string RemoveSuffix(this string str, string suffix) => 
+            str.EndsWith(suffix) ? str.Substring(0, str.Length - suffix.Length) : str;
+
         public static bool IsAnswerCorrect(this IStage stage, string answer)
         {
-            var trimmed = answer.Trim();
+            var trimmed = answer.Trim().RemoveSuffix(".");
             if (trimmed.Length != 1)
                 return stage.CorrectAnswer.Trim().Equals(trimmed, StringComparison.InvariantCultureIgnoreCase);
 
