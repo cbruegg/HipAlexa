@@ -38,7 +38,6 @@ namespace HipAlexa
                 new SimpleStage("Hat Paderborn einen Dom?", new[] {"Ja", "Nein", "Vielleicht"}, "Ja"),
                 new SimpleStage("Ja oder Nein?", new[] {"Ja", "Nein"}, "Ja")
             };
-            // TODO Tell answer options
             var quiz2Stages = new IStage[]
             {
                 new SimpleStage("Schere, Stein, Papier?", new[] {"Schere", "Stein", "Papier"}, "Stein"),
