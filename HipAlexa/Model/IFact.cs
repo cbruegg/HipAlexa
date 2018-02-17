@@ -1,4 +1,4 @@
-﻿namespace HipAlexa
+﻿namespace HipAlexa.Model
 {
     public interface IFact
     {

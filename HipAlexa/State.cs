@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Alexa.NET.Request;
+using HipAlexa.Model;
 
 namespace HipAlexa
 {

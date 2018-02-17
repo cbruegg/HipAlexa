@@ -1,4 +1,6 @@
-﻿namespace HipAlexa
+﻿using HipAlexa.Model;
+
+namespace HipAlexa.Mock
 {
     public class SimpleQuiz : IQuiz
     {

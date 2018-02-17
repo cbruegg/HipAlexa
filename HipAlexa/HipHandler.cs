@@ -5,6 +5,8 @@ using Alexa.NET.Request;
 using Alexa.NET.Request.Type;
 using Alexa.NET.Response;
 using Amazon.Lambda.Core;
+using HipAlexa.Mock;
+using HipAlexa.Model;
 using JetBrains.Annotations;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]

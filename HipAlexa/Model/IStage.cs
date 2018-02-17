@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace HipAlexa
+namespace HipAlexa.Model
 {
     public interface IStage
     {
