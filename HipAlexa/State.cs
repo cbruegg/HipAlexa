@@ -9,13 +9,13 @@ namespace HipAlexa
     {
         public int QuizId { get; }
         public int CorrectAnswers { get; }
-        public int QuestionsPosed { get; }
+        public int QuestionsAsked { get; }
 
-        public State(int quizId, int correctAnswers = 0, int questionsPosed = 0)
+        public State(int quizId, int correctAnswers = 0, int questionsAsked = 0)
         {
             QuizId = quizId;
             CorrectAnswers = correctAnswers;
-            QuestionsPosed = questionsPosed;
+            QuestionsAsked = questionsAsked;
         }
 
         public State Next(IStageExtensions.AnswerResult wasAnswerCorrect)
@@ -23,9 +23,9 @@ namespace HipAlexa
             switch (wasAnswerCorrect)
             {
                 case IStageExtensions.AnswerResult.Wrong:
-                    return new State(QuizId, CorrectAnswers, QuestionsPosed + 1);
+                    return new State(QuizId, CorrectAnswers, QuestionsAsked + 1);
                 case IStageExtensions.AnswerResult.Correct:
-                    return new State(QuizId, CorrectAnswers + 1, QuestionsPosed + 1);
+                    return new State(QuizId, CorrectAnswers + 1, QuestionsAsked + 1);
                 case IStageExtensions.AnswerResult.UnknownAnswer:
                     return this;
                 default:
@@ -37,7 +37,7 @@ namespace HipAlexa
         {
             var sessionAttributes = session.Attributes ?? new Dictionary<string, object>();
             session.Attributes = sessionAttributes;
-            sessionAttributes["QuestionsPosed"] = QuestionsPosed;
+            sessionAttributes["QuestionsAsked"] = QuestionsAsked;
             sessionAttributes["QuizId"] = QuizId;
             sessionAttributes["CorrectAnswers"] = CorrectAnswers;
         }
@@ -47,7 +47,7 @@ namespace HipAlexa
             return new State(
                 Convert.ToInt32(session.Attributes["QuizId"]),
                 Convert.ToInt32(session.Attributes["CorrectAnswers"]),
-                Convert.ToInt32(session.Attributes["QuestionsPosed"])
+                Convert.ToInt32(session.Attributes["QuestionsAsked"])
             );
         }
 
@@ -55,7 +55,7 @@ namespace HipAlexa
         {
             return session.Attributes != null && session.Attributes.ContainsKey("QuizId") &&
                    session.Attributes.ContainsKey("CorrectAnswers") &&
-                   session.Attributes.ContainsKey("QuestionsPosed");
+                   session.Attributes.ContainsKey("QuestionsAsked");
         }
     }
 }

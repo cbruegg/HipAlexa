@@ -79,14 +79,14 @@ namespace HipAlexa
             var quiz = await _db.QuizByIdAsync(state.QuizId);
             var answer = intentRequest.Intent.Slots["answer"].Value;
 
-            if (state.QuestionsPosed < quiz.Stages.Length)
+            if (state.QuestionsAsked < quiz.Stages.Length)
             {
                 var session = request.Session;
                 var output = "<speak>";
                 State nextState;
-                if (state.QuestionsPosed > 0)
+                if (state.QuestionsAsked > 0)
                 {
-                    var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
+                    var previousQuestion = quiz.Stages[state.QuestionsAsked - 1];
                     var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
                     output += wasLastCorrect.Spoken();
                     nextState = state.Next(wasLastCorrect);
@@ -97,21 +97,21 @@ namespace HipAlexa
                     nextState = state;
                 }
 
-                var nextQuestion = quiz.Stages[nextState.QuestionsPosed - 1];
-                output += $" {nextQuestion.PosedQuestionSsml(wrapInSpeakTags: false)} </speak>";
+                var nextQuestion = quiz.Stages[nextState.QuestionsAsked - 1];
+                output += $" {nextQuestion.AskedQuestionSsml(wrapInSpeakTags: false)} </speak>";
                 var speech = new SsmlOutputSpeech {Ssml = output};
                 nextState.WriteTo(session);
                 return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, session);
             }
             else
             {
-                var previousQuestion = quiz.Stages[state.QuestionsPosed - 1];
+                var previousQuestion = quiz.Stages[state.QuestionsAsked - 1];
                 var wasLastCorrect = previousQuestion.IsAnswerCorrect(answer);
                 if (wasLastCorrect == IStageExtensions.AnswerResult.UnknownAnswer)
                 {
-                    var nextQuestion = quiz.Stages[state.QuestionsPosed - 1];
+                    var nextQuestion = quiz.Stages[state.QuestionsAsked - 1];
                     var output =
-                        $"<speak>{wasLastCorrect.Spoken()} {nextQuestion.PosedQuestionSsml(wrapInSpeakTags: false)}</speak>";
+                        $"<speak>{wasLastCorrect.Spoken()} {nextQuestion.AskedQuestionSsml(wrapInSpeakTags: false)}</speak>";
                     var speech = new SsmlOutputSpeech {Ssml = output};
                     return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, request.Session);
                 }
@@ -143,11 +143,11 @@ namespace HipAlexa
                 quiz = await _db.RandomQuizAsync();
             }
 
-            var state = new State(quiz.Id, questionsPosed: 1);
+            var state = new State(quiz.Id, questionsAsked: 1);
             var session = request.Session;
             state.WriteTo(session);
 
-            var speech = new SsmlOutputSpeech {Ssml = quiz.Stages[0].PosedQuestionSsml()};
+            var speech = new SsmlOutputSpeech {Ssml = quiz.Stages[0].AskedQuestionSsml()};
             return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, session);
         }
 

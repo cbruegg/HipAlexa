@@ -15,7 +15,7 @@ namespace HipAlexa.Model
     {
         private static readonly char[] Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
 
-        public static string PosedQuestionSsml(this IStage stage, bool wrapInSpeakTags = true)
+        public static string AskedQuestionSsml(this IStage stage, bool wrapInSpeakTags = true)
         {
             var sb = new StringBuilder();
             if (wrapInSpeakTags) sb.Append("<speak>");
