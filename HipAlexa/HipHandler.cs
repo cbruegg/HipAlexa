@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Alexa.NET;
 using Alexa.NET.Request;
@@ -12,52 +11,8 @@ using JetBrains.Annotations;
 
 namespace HipAlexa
 {
-    public class HipHandler
+    public partial class HipHandler
     {
-        private class State
-        {
-            public int QuizId { get; }
-            public int CorrectAnswers { get; }
-            public int QuestionsPosed { get; }
-
-            public State(int quizId, int correctAnswers = 0, int questionsPosed = 0)
-            {
-                QuizId = quizId;
-                CorrectAnswers = correctAnswers;
-                QuestionsPosed = questionsPosed;
-            }
-
-            public State Next(bool wasAnswerCorrect)
-            {
-                return new State(QuizId, CorrectAnswers + (wasAnswerCorrect ? 1 : 0), QuestionsPosed + 1);
-            }
-
-            public void WriteTo(Session session)
-            {
-                var sessionAttributes = session.Attributes ?? new Dictionary<string, object>();
-                session.Attributes = sessionAttributes;
-                sessionAttributes["QuestionsPosed"] = QuestionsPosed;
-                sessionAttributes["QuizId"] = QuizId;
-                sessionAttributes["CorrectAnswers"] = CorrectAnswers;
-            }
-
-            public static State From(Session session)
-            {
-                return new State(
-                    Convert.ToInt32(session.Attributes["QuizId"]),
-                    Convert.ToInt32(session.Attributes["CorrectAnswers"]),
-                    Convert.ToInt32(session.Attributes["QuestionsPosed"])
-                );
-            }
-
-            public static bool ContainedIn(Session session)
-            {
-                return session.Attributes != null && session.Attributes.ContainsKey("QuizId") &&
-                       session.Attributes.ContainsKey("CorrectAnswers") &&
-                       session.Attributes.ContainsKey("QuestionsPosed");
-            }
-        }
-
         private readonly IDb _db = new SimpleDb();
 
         [UsedImplicitly]
@@ -110,10 +65,14 @@ namespace HipAlexa
                     var topic = intentRequest.Intent.Slots["topic"]?.Value;
                     if (topic != null)
                     {
-                        var info = await _db.RandomFact(topic) ?? await _db.RandomFact();
+                        var fact = await _db.RandomFact(topic);
+                        if (fact == null)
+                        {
+                            return ResponseBuilder.Tell($"Zum Thema {topic} habe ich leider nichts gefunden.");
+                        }
                         var speech = new PlainTextOutputSpeech
                         {
-                            Text = $"Zum Thema {topic} habe ich Folgendes gefunden: {info.Value}"
+                            Text = $"Zum Thema {topic} habe ich Folgendes gefunden: {fact.Value}"
                         };
                         return ResponseBuilder.Tell(speech);
                     }

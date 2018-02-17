@@ -59,7 +59,8 @@ namespace HipAlexa
         public async Task<IFact> RandomFact(string forTopic)
         {
             var factsForTopic = _factsByTopic
-                .Where(it => it.Key.Synonyms.Contains(forTopic))
+                .Where(it => it.Key.Synonyms.Any(synonym =>
+                    synonym.Equals(forTopic.Trim(), StringComparison.InvariantCultureIgnoreCase)))
                 .SelectMany(it => it.Value)
                 .ToList();
 
@@ -71,7 +72,8 @@ namespace HipAlexa
         public async Task<IQuiz> RandomQuiz(string forTopic)
         {
             var quizzesForTopic = _quizzesByTopic
-                .Where(it => it.Key.Synonyms.Contains(forTopic))
+                .Where(it => it.Key.Synonyms.Any(synonym =>
+                    synonym.Equals(forTopic.Trim(), StringComparison.InvariantCultureIgnoreCase)))
                 .SelectMany(it => it.Value)
                 .ToList();
 
