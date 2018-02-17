@@ -38,6 +38,7 @@ namespace HipAlexa
                 new SimpleStage("Hat Paderborn einen Dom?", new[] {"Ja", "Nein", "Vielleicht"}, "Ja"),
                 new SimpleStage("Ja oder Nein?", new[] {"Ja", "Nein"}, "Ja")
             };
+            // TODO Tell answer options
             var quiz2Stages = new IStage[]
             {
                 new SimpleStage("Schere, Stein, Papier?", new[] {"Schere", "Stein", "Papier"}, "Stein"),
@@ -46,8 +47,8 @@ namespace HipAlexa
                     "Die Nuss liegt in der Mitte.")
             };
 
-            var quiz1 = new SimpleQuiz(quiz1Stages);
-            var quiz2 = new SimpleQuiz(quiz2Stages);
+            var quiz1 = new SimpleQuiz(quiz1Stages, 1);
+            var quiz2 = new SimpleQuiz(quiz2Stages, 2);
             _quizzes = new[] {quiz1, quiz2};
             _quizzesByTopic = new Dictionary<ITopic, IReadOnlyList<IQuiz>>
             {
@@ -79,5 +80,7 @@ namespace HipAlexa
         }
 
         public async Task<IQuiz> RandomQuiz() => _quizzes[_random.Next(_quizzes.Count)];
+
+        public async Task<IQuiz> QuizById(int id) => _quizzes.Single(it => it.Id == id);
     }
 }

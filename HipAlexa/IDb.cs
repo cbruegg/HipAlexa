@@ -21,5 +21,7 @@ namespace HipAlexa
         /// <param name="forTopic"></param>
         /// <returns></returns>
         Task<IQuiz> RandomQuiz();
+
+        Task<IQuiz> QuizById(int id);
     }
 }
