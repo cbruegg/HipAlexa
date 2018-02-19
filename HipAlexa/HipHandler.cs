@@ -30,7 +30,7 @@ namespace HipAlexa
                 case LaunchRequest _:
                     return await HandleLaunchRequestAsync();
                 case IntentRequest intentRequest:
-                    return await HandleIntentRequestAsync(input, intentRequest, context);
+                    return await HandleIntentRequestAsync(input, intentRequest);
                 case SessionEndedRequest _:
                     return await HandleSessionEndedRequestAsync();
             }
@@ -50,13 +50,12 @@ namespace HipAlexa
             return Task.FromResult(ResponseBuilder.Tell(new PlainTextOutputSpeech {Text = "Tschüss!"}));
         }
 
-        private async Task<SkillResponse> HandleIntentRequestAsync(SkillRequest request, IntentRequest intentRequest,
-            ILambdaContext context)
+        private async Task<SkillResponse> HandleIntentRequestAsync(SkillRequest request, IntentRequest intentRequest)
         {
             switch (intentRequest.Intent.Name)
             {
                 case "GiveFactIntent":
-                    return await HandleGiveFactIntentRequestAsync(intentRequest, context);
+                    return await HandleGiveFactIntentRequestAsync(intentRequest);
                 case "StartQuizIntent":
                     return await HandleStartQuizIntentRequestAsync(request, intentRequest);
                 case "AnswerIntent":
@@ -151,13 +150,11 @@ namespace HipAlexa
             return ResponseBuilder.Ask(speech, new Reprompt {OutputSpeech = speech}, session);
         }
 
-        private async Task<SkillResponse> HandleGiveFactIntentRequestAsync(IntentRequest intentRequest,
-            ILambdaContext context)
+        private async Task<SkillResponse> HandleGiveFactIntentRequestAsync(IntentRequest intentRequest)
         {
             var topic = intentRequest.Intent.Slots["topic"]?.Value;
             if (topic != null)
             {
-                context.Logger.LogLine($"Topic is {topic}");
                 var fact = await _db.RandomFactAsync(topic);
                 if (fact == null)
                 {
